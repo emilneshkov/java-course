@@ -1,6 +1,5 @@
 package bg.sofia.uni.fmi.mjt.carwash.plan;
 
-import java.util.Collections;
 import java.util.List;
 
 public record WashPlan(String packageName, int priceCents, List<WashStep> steps) {
@@ -24,7 +23,9 @@ public record WashPlan(String packageName, int priceCents, List<WashStep> steps)
             }
         }
 
-        steps = Collections.unmodifiableList(steps);
+        // BUG 1: External list changes affect the plan.
+        //steps = Collections.unmodifiableList(new ArrayList<>(steps));
+        steps = List.copyOf(steps);
     }
 
 }

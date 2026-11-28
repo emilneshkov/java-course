@@ -5,7 +5,6 @@ import bg.sofia.uni.fmi.mjt.carwash.exception.WashUnavailableException;
 import bg.sofia.uni.fmi.mjt.carwash.plan.WashStep;
 
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 
 public class InMemoryWashController implements WashController {
@@ -38,9 +37,13 @@ public class InMemoryWashController implements WashController {
             throw new WashUnavailableException("Controller is not operational");
         }
 
-        List<Integer> tmp = supplies;
+        // BUG 3: Backup references the original list
+        //List<Integer> tmp = supplies;
+        List<Integer> tmp = new ArrayList<>(supplies);
 
-        for (WashStep step : EnumSet.copyOf(request.plan().steps())) {
+        // BUG 4: EnumSet removes repeated wash steps
+        //for (WashStep step : EnumSet.copyOf(request.plan().steps())) {
+        for (WashStep step : request.plan().steps()) {
             if (supplies.get(WATER) < step.getWaterLitres() || supplies.get(SHAMPOO) < step.getShampooMl()
                 || supplies.get(WAX) < step.getWaxMl()) {
                 supplies = tmp;

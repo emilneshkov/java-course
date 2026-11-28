@@ -2,7 +2,6 @@ package bg.sofia.uni.fmi.mjt.carwash;
 
 import bg.sofia.uni.fmi.mjt.carwash.controller.WashController;
 import bg.sofia.uni.fmi.mjt.carwash.exception.UnsupportedVehicleException;
-import bg.sofia.uni.fmi.mjt.carwash.exception.WashUnavailableException;
 import bg.sofia.uni.fmi.mjt.carwash.plan.WashPlan;
 import bg.sofia.uni.fmi.mjt.carwash.vehicle.Vehicle;
 import bg.sofia.uni.fmi.mjt.carwash.washpackage.WashPackage;
@@ -13,10 +12,9 @@ import java.util.List;
 public class CarWashStation {
 
     private final WashController controller;
-    private final ArrayList<WashRequest> acceptedWashes;
+    private final List<WashRequest> acceptedWashes;
 
     private int creditCents;
-    private int lastChargeCents;
 
     public CarWashStation(int initialCreditCents, WashController controller) {
         if (initialCreditCents < 0) {
@@ -33,8 +31,9 @@ public class CarWashStation {
     }
 
     public void addCredit(int amountCents) {
-        if (amountCents <= 0)
+        if (amountCents <= 0) {
             throw new IllegalArgumentException("Added credit must be positive");
+        }
 
         creditCents += amountCents;
     }
@@ -44,51 +43,41 @@ public class CarWashStation {
             throw new IllegalArgumentException("Vehicle and wash package must not be null");
         }
 
-        WashPlan p;
+        WashPlan plan;
         try {
-            p = resolvePlan(vehicle, washPackage);
+            plan = createWashPlan(vehicle, washPackage);
         } catch (UnsupportedVehicleException exception) {
             return false;
         }
 
-        if (!check(p)) {
+        if (!hasSufficientCredit(plan)) {
             return false;
         }
 
-        WashRequest r = new WashRequest(vehicle, p);
+        WashRequest request = new WashRequest(vehicle, plan);
 
-        try {
-            if (!controller.submit(r)) {
-                return false;
-            }
-        } catch (WashUnavailableException exception) {
-            creditCents += lastChargeCents;
-            throw exception;
+        // BUG 5: Failed requests incorrectly increase credit.
+        if (!controller.submit(request)) {
+            return false;
         }
 
-        chargeAndRecord(p, r);
+        chargeAndRecordWash(plan, request);
         return true;
     }
 
-    private WashPlan resolvePlan(Vehicle vehicle, WashPackage washPackage) {
+    private WashPlan createWashPlan(Vehicle vehicle, WashPackage washPackage) {
         return washPackage.createPlan(vehicle);
     }
 
-    private void chargeAndRecord(WashPlan p, WashRequest r) {
-        creditCents -= p.priceCents();
-        lastChargeCents = p.priceCents();
+    private void chargeAndRecordWash(WashPlan plan, WashRequest request) {
+        creditCents -= plan.priceCents();
 
-        if (!acceptedWashes.contains(r)) {
-            acceptedWashes.add(r);
-        }
+        // BUG 6: Duplicate accepted requests are ignored.
+        acceptedWashes.add(request);
     }
 
-    private boolean check(WashPlan p) {
-        if (creditCents >= p.priceCents()) {
-            return true;
-        } else {
-            return false;
-        }
+    private boolean hasSufficientCredit(WashPlan plan) {
+        return creditCents >= plan.priceCents();
     }
 
     public int getCreditCents() {
@@ -98,5 +87,4 @@ public class CarWashStation {
     public List<WashRequest> getAcceptedWashes() {
         return List.copyOf(acceptedWashes);
     }
-
 }

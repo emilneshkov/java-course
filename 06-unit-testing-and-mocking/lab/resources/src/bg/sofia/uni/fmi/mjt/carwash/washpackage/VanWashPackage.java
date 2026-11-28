@@ -6,14 +6,13 @@ import bg.sofia.uni.fmi.mjt.carwash.plan.WashStep;
 import bg.sofia.uni.fmi.mjt.carwash.vehicle.Vehicle;
 import bg.sofia.uni.fmi.mjt.carwash.vehicle.VehicleType;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class VanWashPackage implements WashPackage {
 
     private static final int PRICE_CENTS = 1500;
 
-    private final List<WashStep> steps = new ArrayList<>();
+    //private final List<WashStep> steps = new ArrayList<>();
 
     @Override
     public WashPlan createPlan(Vehicle vehicle) {
@@ -25,9 +24,13 @@ public class VanWashPackage implements WashPackage {
             throw new UnsupportedVehicleException("The van package supports vans only");
         }
 
-        steps.addAll(List.of(WashStep.PREWASH, WashStep.SHAMPOO, WashStep.RINSE, WashStep.DRY));
+        // BUG 2: Wash steps accumulate on repeated calls.
+        //steps.addAll(List.of(WashStep.PREWASH, WashStep.SHAMPOO, WashStep.RINSE, WashStep.DRY));
 
-        return new WashPlan("Van", PRICE_CENTS, steps);
+        //return new WashPlan("Van", PRICE_CENTS, steps);
+
+        return new WashPlan("Van", PRICE_CENTS,
+                List.of(WashStep.PREWASH, WashStep.SHAMPOO, WashStep.RINSE, WashStep.DRY));
     }
 
 }
